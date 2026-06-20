@@ -501,7 +501,16 @@ void loop() {
 
 This is the BOM of the entire project, just buy the normal one not the pcb version and just use jumper wire with minimal soldering required except for slicing GND together.
 ```
-
+* Xiao esp32 S3                      1pcs.
+* MPU-6050                           1pcs.
+* 0.96" Inch I2C IIC OLED            1pcs.
+* Touch (TTP223B)                    1pcs.
+* Vibration Motor Module (Catalex)   1pcs.
+* Female Jumper Wires                20pcs.
+* Male Jumper wires                  15pcs.
+* Electrical tape                    1roll
+* Lipo Battery                       500mah
+* PLA 3d printing/time               ≈25g ≈50min
 ```
 
 ## Assembled Pictures
