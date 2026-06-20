@@ -57,9 +57,9 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 
 ### Firmware
 
-* The code is in C++ made for ESP-32
+* The code is in C++ made for Xiao ESP-32 S3
 * The library version might change over time, please recheck it again.
-* Sidenote: I'm not really sure about the code but I tried my best to polish it because my friend quit half way :(
+* feel free to edit and change the credit however you want!
 ```
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -514,21 +514,23 @@ PLA 3d printing/time       ≈15g ≈45min
 ```
 
 ## Assembled Pictures
-<img width="1066" height="255" alt="image" src="https://github.com/user-attachments/assets/f935058f-1cd8-41fb-bf4d-d9253fb1b696" />
+
 
 ## Rendered Pictures
-<img width="1051" height="238" alt="Screenshot 2026-06-18 172513" src="https://github.com/user-attachments/assets/4d41c5bb-d906-4908-aacb-cc6fe0f857d9" />
+
 
 
 ## Captive Portal interface
-<img width="373" height="445" alt="Screenshot 2026-06-18 032915" src="https://github.com/user-attachments/assets/ff6574ff-b611-4831-ab5b-705859b5a18c" />
+<img width="360" height="331" alt="Screenshot 2026-06-21 011252" src="https://github.com/user-attachments/assets/a9a8f4f2-8326-47e3-a5a6-8e3d1da70e30" />
+
 
 
 ## Schematic 
-<img width="1769" height="1251" alt="SCH_Schematic1_2026-06-14 (1)_page-0001" src="https://github.com/user-attachments/assets/8684b099-6665-4e5c-9a5a-702e105f07e2" />
+<img width="929" height="656" alt="Screenshot 2026-06-21 033731" src="https://github.com/user-attachments/assets/a90014f5-55d1-4fad-a386-3fb38072e482" />
 
 
 # Zine Poster
-<img width="1410" height="2000" alt="waaavecoustic (1)" src="https://github.com/user-attachments/assets/4f861a55-da71-4618-9970-9b8e22a6dd7f" />
+<img width="1410" height="2000" alt="GYRO-GOTCHI" src="https://github.com/user-attachments/assets/22cb9461-760b-4205-a37e-98948c4b3306" />
+
 
 
