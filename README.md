@@ -32,26 +32,26 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 * finally slide in the 3d printed cap
 
 ### Wiring
-MPU-6050 to Xiao esp32 S3
-VCC | 3V3
-GND | GND 
-SCL | D5 
-SDA | D4 
-OLED to Xiao esp32 S3
-VCC | 3V3 
-GND | GND 
-SCL | D5 
-SDA | D4 
-Touch (TTP223B) to Xiao esp32 S3
-VCC | 3V3 
-GND | GND 
-SIG | D1 
-Vibrator to Xiao esp32 S3
-+ | D2
-- | GND
-LiPo to Xiao esp32 S3
-+ | BAT+ 
-- | BAT- 
+* MPU-6050 to Xiao esp32 S3
+* VCC | 3V3
+* GND | GND 
+* SCL | D5 
+* SDA | D4 
+* OLED to Xiao esp32 S3
+* VCC | 3V3 
+* GND | GND 
+* SCL | D5 
+* SDA | D4 
+* Touch (TTP223B) to Xiao esp32 S3
+* VCC | 3V3 
+* GND | GND 
+* SIG | D1 
+* Vibrator to Xiao esp32 S3
+* + | D2
+* - | GND
+* LiPo to Xiao esp32 S3
+* + | BAT+ 
+* - | BAT- 
 * Splice all 3.3v together and add solder and a electrical tape!!!
 * Splice all GND together and add solder and a electrical tape!!!
 * Refers to the schematic down below for more indepth guide.
