@@ -1,19 +1,20 @@
-# Wavecoustic
+# Gyrogotchi
 
-An ESP-32 with INMP441 mic to analyse piano sound using FFT (Fast Fourier transform) to light up WS2812B led on the corresponding across the piano key.
+A tamagotchi that reacts when you flip them in a 4x4 cube keychain using xiao esp32 s3 and mpu6050.
 
 ## Description
 
-This is a controller for a LED strip that lights up a piano key when pressed. I know a version of this had been done before; however, as far as I know, there had only been a version where the input for the LED was from MIDI, which is impossible to do with an older piano or an acoustic piano. I wanted to make this project so much because looking back I would have practiced the piano so much more if it wasn't so boring. So, my goal is to use an actual microphone input and FFT to translate the sound wave signal into individual key notes. So that it becomes fun and usable. 
+This is a tamagotchi keychain that introduce another way to interact with the chracter using a gyroscope to be able to tilt the character to triger different animation and around like having a small hamster in a keychain. I wanted to create this because I got inspired by those old 2000 toys where there's innovation and new idea and everythings seems fascinating. My goal here is to make a keychain personalized for me and also double as a nametag I did this by adding a secret code that when I hold a button for 1.5 seccond my credit and name would pop up.
 
 ## Getting Started
 
 ### Usage
 
-* Place the 1.4m led strip over the piano in possition.
-* Charge your external LIPO-battery using Tp4056 usb-c charging module.
-* Plug the external lipo battery in and rest it on the holder (please be aware of the polarlity).
-* Set the setting mode and brightness via esp32-accesspoint captive portal.
+* charge from the usbc port
+* press the capacitive touch sensor embeded at the left side 
+* shake to wake the character up from sleeping and tilt or flip to trigger different animation
+* hold 1.5 seccond to trigger my personalized credit
+* connect to gyrogotchi captive portal acess point to broad cast message to the screen and synce time
 
 ### Assembling
 
@@ -60,473 +61,439 @@ This is a controller for a LED strip that lights up a piano key when pressed. I 
 * The library version might change over time, please recheck it again.
 * Sidenote: I'm not really sure about the code but I tried my best to polish it because my friend quit half way :(
 ```
-#include <Arduino.h>
-#include <driver/i2s.h>
-#include <arduinoFFT.h>
-#include <FastLED.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 #include <WiFi.h>
-#include <ESPAsyncWebServer.h>
-#include <AsyncWebSocket.h>
 #include <DNSServer.h>
+#include <WebServer.h>
+#include <time.h>
 
-#define FREQ_MAX        4186.0f
-#define FREQ_MIN        27.5f
-#define SAMPLE          1024
-#define SAMPLE_RATE     22050
-#define MAG_THRESHOLD   3000
+#define TOUCH_PIN      1
+#define VIBRATOR_PIN   2
 
-#define I2S_WS          25
-#define I2S_SD          34
-#define I2S_SCK         32
-#define LED_PIN         13
-#define JAX_ADC_PIN     35
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
 
-#define NUM_KEY         88
-#define LED_PER_KEY     2
-#define NUM_LED         176
-#define MAX_AMPS        1500
-#define BRIGHTNESS      150
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_MPU6050 mpu;
 
-typedef enum { INPUT_I2S, INPUT_JAX } InputMode;
-InputMode inputMode = INPUT_I2S;
+WebServer server(80);
+DNSServer dnsServer;
+const byte DNS_PORT = 53;
 
-typedef enum { COLOR_BY_FREQ, COLOR_RAINBOW, COLOR_WHITE } ColorMode;
-ColorMode colorMode = COLOR_BY_FREQ;
-uint8_t ledBrightness = BRIGHTNESS;
-const char* NOTE_NAMES[NUM_KEY] = {
-    "A0","A#0","B0",
-    "C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1","B1",
-    "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2",
-    "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3",
-    "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
-    "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
-    "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6",
-    "C7","C#7","D7","D#7","E7","F7","F#7","G7","G#7","A7","A#7","B7",
-    "C8"
-};
-CRGB leds[NUM_LED];
+int blink_counter = 0;
+int zzz_counter = 0;
+bool is_sleeping = true; 
 
-float vReal[SAMPLE];
-float vImag[SAMPLE];
-ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE, SAMPLE_RATE);
+unsigned long last_interaction_time = 0;
+const unsigned long SLEEP_TIMEOUT = 45000;
 
-static int32_t i2sRaw[SAMPLE];
-static char wsBuf[3072];
-float noiseFloor = 3000.0f;
-float peakMag    = 0.0f;
-float peakFreq   = 0.0f;
-const char* AP_SSID = "PianoLED";
-DNSServer       dnsServer;
-AsyncWebServer  server(80);
-AsyncWebSocket  ws("/ws");
+unsigned long touch_start_time = 0;
+bool touch_was_active = false;
+bool showing_credits = false;
 
-const char PORTAL_HTML[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PianoLED</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:#0a0a0f;color:#fff;
-    font-family:'Segoe UI',sans-serif;
-    min-height:100vh;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;overflow:hidden;
-  }
-  h1{font-size:1.4rem;letter-spacing:.3em;color:#888;text-transform:uppercase;margin-bottom:3rem}
-  #note-display{
-    display:flex;flex-wrap:wrap;justify-content:center;
-    gap:14px;min-height:90px;align-items:center;max-width:90vw;
-  }
-  .note-chip{
-    padding:10px 20px;border-radius:50px;
-    font-size:1.3rem;font-weight:700;letter-spacing:.05em;
-    transition:opacity .6s ease,transform .6s ease;
-    opacity:1;transform:scale(1);white-space:nowrap;
-  }
-  .note-chip.fading{opacity:0;transform:scale(.85)}
-  #status{margin-top:3rem;font-size:.75rem;color:#333;letter-spacing:.1em}
-  .dot{
-    display:inline-block;width:7px;height:7px;border-radius:50%;
-    background:#333;margin-right:6px;vertical-align:middle;transition:background .3s;
-  }
-  .dot.live{background:#00ff88}
-  #settings{
-    margin-top:2rem;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
-  }
-  select{
-    background:#111;color:#aaa;border:1px solid #333;
-    border-radius:8px;padding:6px 12px;font-size:.8rem;cursor:pointer;
-  }
-  select:focus{outline:none;border-color:#555}
-  input[type=range]{width:160px;accent-color:#00b4ff}
-</style>
-</head>
-<body>
-<h1>PianoLED</h1>
-<div id="note-display">
-  <span style="color:#333;font-size:.9rem;letter-spacing:.2em">LISTENING...</span>
-</div>
-<div id="settings">
-  <select id="inputSel" onchange="sendSetting('input',this.value)">
-    <option value="0">🎙 I2S Mic</option>
-    <option value="1"> 3.5mm Jack</option>
-  </select>
-  <select id="colorSel" onchange="sendSetting('color',this.value)">
-    <option value="0">By Frequency</option>
-    <option value="1"> Rainbow</option>
-    <option value="2"> White</option>
-  </select>
-  <input type="range" id="volSel" min="0" max="255" value="150" oninput="sendSetting('brightness',this.value)">
-</div>
-<div id="status">
-  <span class="dot" id="dot"></span>
-  <span id="status-text">CONNECTING</span>
-</div>
-<script>
-  function noteColor(freq){
-    if(freq<120)  return{bg:'rgba(255,30,0,.15)',  border:'#ff1e00',text:'#ff6040'};
-    if(freq<250)  return{bg:'rgba(255,80,0,.15)',  border:'#ff5000',text:'#ff8040'};
-    if(freq<500)  return{bg:'rgba(255,200,0,.15)', border:'#ffc800',text:'#ffd040'};
-    if(freq<1000) return{bg:'rgba(0,255,80,.15)',  border:'#00ff50',text:'#40ff80'};
-    if(freq<2000) return{bg:'rgba(0,180,255,.15)', border:'#00b4ff',text:'#40ccff'};
-    if(freq<3000) return{bg:'rgba(0,80,255,.15)',  border:'#0050ff',text:'#4080ff'};
-    return         {bg:'rgba(180,0,255,.15)',       border:'#b400ff',text:'#cc40ff'};
-  }
+String cowsay_text = "";
+unsigned long custom_text_display_expiry = 0;
 
-  const display   = document.getElementById('note-display');
-  const dot       = document.getElementById('dot');
-  const stText    = document.getElementById('status-text');
-  const activeChips = {};
-  const FADE_DELAY_MS = 600;
+RTC_DATA_ATTR bool has_time_synced = false;
+RTC_DATA_ATTR unsigned long rtc_sync_time = 0;
+RTC_DATA_ATTR unsigned long rtc_sync_millis = 0;
 
-  function showNotes(notes){
-    const incoming = new Set(notes.map(n=>n.name));
-    
-    if(notes.length > 0 && display.querySelector('span')) {
-      display.innerHTML = '';
-    }
+bool wifi_active = false;
+unsigned long wifi_start_millis = 0;
+const unsigned long WIFI_PORTAL_TIMEOUT = 60000;
 
-    notes.forEach(({name,freq})=>{
-      if(activeChips[name]){
-        clearTimeout(activeChips[name].fadeTimer);
-        activeChips[name].el.classList.remove('fading');
-        activeChips[name].fadeTimer=null;
-      } else {
-        const c=noteColor(freq);
-        const chip=document.createElement('div');
-        chip.className='note-chip';
-        chip.textContent=name;
-        chip.style.background=c.bg;
-        chip.style.border=`1.5px solid ${c.border}`;
-        chip.style.color=c.text;
-        chip.style.boxShadow=`0 0 18px ${c.border}55`;
-        display.appendChild(chip);
-        activeChips[name]={el:chip,fadeTimer:null};
-      }
-    });
+int getBatteryPercentage() {
+  pinMode(14, OUTPUT);
+  digitalWrite(14, LOW);
+  
+  int raw = analogRead(10);
+  float voltage = (raw / 4096.0) * 3.3 * 2.0; 
 
-    Object.keys(activeChips).forEach(name=>{
-      if(!incoming.has(name)&&!activeChips[name].fadeTimer){
-        activeChips[name].el.classList.add('fading');
-        activeChips[name].fadeTimer=setTimeout(()=>{
-          activeChips[name].el.remove();
-          delete activeChips[name];
-          if(Object.keys(activeChips).length===0)
-            display.innerHTML='<span style="color:#333;font-size:.9rem;letter-spacing:.2em">LISTENING...</span>';
-        },FADE_DELAY_MS);
-      }
-    });
-  }
-
-  function sendSetting(key,val){
-    if(ws&&ws.readyState===1) ws.send(JSON.stringify({[key]:parseInt(val)}));
-  }
-
-  let ws;
-  function connect(){
-    ws=new WebSocket('ws://'+location.hostname+'/ws');
-    ws.onopen=()=>{dot.classList.add('live');stText.textContent='LIVE'};
-    ws.onmessage=(e)=>{
-      try{
-        const data=JSON.parse(e.data);
-        if(Array.isArray(data)) showNotes(data);
-        if(data.input!==undefined) document.getElementById('inputSel').value=data.input;
-        if(data.color!==undefined) document.getElementById('colorSel').value=data.color;
-        if(data.brightness!==undefined) document.getElementById('volSel').value=data.brightness;
-      }catch(err){}
-    };
-    ws.onclose=()=>{
-      dot.classList.remove('live');
-      stText.textContent='RECONNECTING...';
-      setTimeout(connect,1500);
-    };
-  }
-  connect();
-</script>
-</body>
-</html>
-)rawliteral";
-
-void setupI2S() {
-    i2s_config_t config = {
-        .mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
-        .sample_rate          = SAMPLE_RATE,
-        .bits_per_sample      = I2S_BITS_PER_SAMPLE_32BIT,
-        .channel_format       = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_STAND_I2S),
-        .intr_alloc_flags     = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count        = 8,
-        .dma_buf_len          = 64,
-        .use_apll             = false,
-        .tx_desc_auto_clear   = false,
-        .fixed_mclk           = 0
-    };
-    i2s_pin_config_t pin_config = {
-        .bck_io_num   = I2S_SCK,
-        .ws_io_num    = I2S_WS,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num  = I2S_SD
-    };
-    i2s_driver_install(I2S_NUM_0, &config, 0, NULL);
-    i2s_set_pin(I2S_NUM_0, &pin_config);
+  int percent = map(voltage * 100, 330, 420, 0, 100);
+  return constrain(percent, 0, 100);
 }
 
-void calibrateNoise() {
-    Serial.println("Calibrating noise floor... keep quiet for 2 seconds");
-    float maxNoise = 0.0f;
-    for (int pass = 0; pass < 4; pass++) {
-        size_t bytesRead;
-        i2s_read(I2S_NUM_0, i2sRaw, sizeof(i2sRaw), &bytesRead, portMAX_DELAY);
-        int sampleCount = bytesRead / sizeof(int32_t);
-        for (int i = 0; i < sampleCount && i < SAMPLE; i++) {
-            vReal[i] = (float)i2sRaw[i] / 2147483648.0f;
-            vImag[i] = 0.0f;
-        }
-        FFT.windowing(FFT_WIN_TYP_HANN, FFT_FORWARD);
-        FFT.compute(FFT_FORWARD);
-        FFT.complexToMagnitude();
-        for (int i = 2; i < SAMPLE / 2; i++) {
-            if (vReal[i] > maxNoise) maxNoise = vReal[i];
-        }
-        delay(500);
-    }
-    noiseFloor = maxNoise * 1.5f;
-    Serial.printf("Noise floor set to: %.4f\n", noiseFloor);
+String getOrientationString(float x, float y) {
+  if (y < -4.0) return "Upside Down";
+  if (x < -4.0) return "Tilting Left";
+  if (x > 4.0)  return "Tilting Right";
+  return "Flat / Centered";
 }
 
-void readI2S() {
-    size_t bytesRead;
-    i2s_read(I2S_NUM_0, i2sRaw, sizeof(i2sRaw), &bytesRead, portMAX_DELAY);
-    for (int i = 0; i < SAMPLE; i++) {
-        vReal[i] = (float)i2sRaw[i] / 2147483648.0f;
-        vImag[i] = 0.0f;
-    }
+unsigned long getCalculatedEpoch() {
+  if (!has_time_synced) return 0;
+  return rtc_sync_time + ((millis() - rtc_sync_millis) / 1000);
 }
 
-void readJax() {
-    for (int i = 0; i < SAMPLE; i++) {
-        unsigned long startUs = micros();
-        int raw = analogRead(JAX_ADC_PIN);
-        vReal[i] = (float)(raw - 2048) / 2048.0f;
-        vImag[i] = 0.0f;
-        while ((micros() - startUs) < 45) {
-            
-        }
-    }
+void goToDeepSleep() {
+  if (wifi_active) {
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_OFF);
+  }
+  display.clearDisplay();
+  display.display();
+  digitalWrite(VIBRATOR_PIN, LOW);
+  
+  esp_deep_sleep_enable_ext0_wakeup((gpio_num_t)TOUCH_PIN, 1);
+  esp_deep_sleep_start();
 }
 
-int freqToled(float freq) {
-    if (freq < FREQ_MIN || freq > FREQ_MAX) return -1;
-    float logMin = logf(FREQ_MIN);
-    float logMax = logf(FREQ_MAX);
-    float logF   = logf(freq);
-    int key = (int)((logF - logMin) / (logMax - logMin) * (NUM_KEY - 1));
-    return constrain(key, 0, NUM_KEY - 1);
+void syncTimeFromParam() {
+  if (server.hasArg("epoch")) {
+    long long epoch = atoll(server.arg("epoch").c_str());
+    struct timeval tv;
+    tv.tv_sec = epoch;
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+    rtc_sync_time = epoch;
+    rtc_sync_millis = millis();
+    has_time_synced = true;
+  }
 }
 
-bool isHarmonic(float freq, float fundamental) {
-    for (int h = 2; h <= 6; h++) {
-        float harmonic = fundamental * h;
-        float margin   = harmonic * 0.02f;
-        if (fabsf(freq - harmonic) < margin) return true;
-    }
-    return false;
+void handleRoot() {
+  last_interaction_time = millis();
+  syncTimeFromParam();
+  
+  sensors_event_t a, g, t;
+  mpu.getEvent(&a, &g, &t);
+  
+  String html = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<style>body{background:#0f141c;color:#00ffcc;font-family:monospace;text-align:center;padding:20px;}";
+  html += ".card{background:#161f2e;border:2px solid #00ffcc;border-radius:8px;padding:15px;margin:15px auto;max-width:400px;box-shadow:0 4px 10px rgba(0,255,204,0.2);}";
+  html += "input[type='text']{width:80%;padding:10px;background:#0f141c;border:1px solid #00ffcc;color:#fff;font-family:monospace;margin-bottom:10px;}";
+  html += "input[type='submit']{background:#00ffcc;color:#0f141c;border:none;padding:10px 20px;font-weight:bold;cursor:pointer;}";
+  html += "</style><script>";
+  html += "function syncAndPost(form) {";
+  html += "  document.getElementById('deviceTime').value = Math.floor(Date.now() / 1000);";
+  html += "  return true;";
+  html += "}";
+  html += "window.onload = function() {";
+  html += "  var xhr = new XMLHttpRequest();";
+  html += "  xhr.open('GET', '/sync?epoch=' + Math.floor(Date.now() / 1000), true);";
+  html += "  xhr.send();";
+  html += "};";
+  html += "</script></head><body>";
+  html += "<h1>TAMACUBE DASHBOARD</h1>";
+  
+  html += "<div class='card'>";
+  html += "<h3>SYSTEM TELEMETRY</h3>";
+  html += "<p><b>Battery Level:</b> " + String(getBatteryPercentage()) + "%</p>";
+  html += "<p><b>Orientation:</b> " + getOrientationString(a.acceleration.x, a.acceleration.y) + "</p>";
+  
+  unsigned long current_epoch = getCalculatedEpoch();
+  if(current_epoch > 0) {
+    time_t now = (time_t)current_epoch;
+    struct tm* timeinfo = localtime(&now);
+    char timeStr[20];
+    strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", timeinfo);
+    html += "<p><b>Synced Time:</b> " + String(timeStr) + "</p>";
+  } else {
+    html += "<p><b>Synced Time:</b> Not Synchronized</p>";
+  }
+  html += "</div>";
+
+  html += "<div class='card'>";
+  html += "<h3>COWSAY TRANSMITTER</h3>";
+  html += "<form action='/msg' method='POST' onsubmit='return syncAndPost(this);'>";
+  html += "<input type='hidden' id='deviceTime' name='epoch'>";
+  html += "<input type='text' name='cowsay' placeholder='Type temporary alert message...' maxlength='32'><br>";
+  html += "<input type='submit' value='TRANSMIT TO CUBE'>";
+  html += "</form></div>";
+  html += "</body></html>";
+  server.send(200, "text/html", html);
 }
 
-CRGB freqColor(float freq, int keyIndex) {
-    switch (colorMode) {
-        case COLOR_BY_FREQ:
-            if (freq < 120)  return CRGB(255,  30,   0);
-            if (freq < 250)  return CRGB(255,  80,   0);
-            if (freq < 500)  return CRGB(255, 200,   0);
-            if (freq < 1000) return CRGB(  0, 255,  80);
-            if (freq < 2000) return CRGB(  0, 180, 255);
-            if (freq < 3000) return CRGB(  0,  80, 255);
-            return               CRGB(180,   0, 255);
-        case COLOR_RAINBOW:
-            return CHSV((uint8_t)((keyIndex * 255) / NUM_KEY), 255, 255);
-        case COLOR_WHITE:
-        default:
-            return CRGB::White;
-    }
+void handleMessage() {
+  last_interaction_time = millis(); 
+  syncTimeFromParam();
+  if (server.hasArg("cowsay")) {
+    cowsay_text = server.arg("cowsay");
+    custom_text_display_expiry = millis() + 15000;
+  }
+  server.sendHeader("Location", "/", true);
+  server.send(302, "text/plain", "");
 }
 
-void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
-               AwsEventType type, void* arg, uint8_t* data, size_t len) {
-    if (type == WS_EVT_CONNECT) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "{\"input\":%d,\"color\":%d,\"brightness\":%d}",
-                 (int)inputMode, (int)colorMode, (int)ledBrightness);
-        client->text(buf);
-    } else if (type == WS_EVT_DATA) {
-        AwsFrameInfo* info = (AwsFrameInfo*)arg;
-        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-            String msg = String((char*)data).substring(0, len);
-            int inputVal = -1, colorVal = -1, brightnessVal = -1;
-            int idx = msg.indexOf("\"input\":");
-            if (idx >= 0) inputVal = msg.substring(idx + 8).toInt();
-            idx = msg.indexOf("\"color\":");
-            if (idx >= 0) colorVal = msg.substring(idx + 8).toInt();
-            idx = msg.indexOf("\"brightness\":");
-            if (idx >= 0) brightnessVal = msg.substring(idx + 13).toInt();
-            if (inputVal >= 0 && inputVal <= 1) inputMode = (InputMode)inputVal;
-            if (colorVal >= 0 && colorVal <= 2) colorMode = (ColorMode)colorVal;
-            if (brightnessVal >= 0 && brightnessVal <= 255) {
-                ledBrightness = (uint8_t)brightnessVal;
-                FastLED.setBrightness(ledBrightness);
-            }
-            char buf[64];
-            snprintf(buf, sizeof(buf), "{\"input\":%d,\"color\":%d,\"brightness\":%d}",
-                     (int)inputMode, (int)colorMode, (int)ledBrightness);
-            server->textAll(buf);
-        }
-    }
+void handleSync() {
+  syncTimeFromParam();
+  server.send(200, "text/plain", "OK");
 }
 
-void setupPortal() {
-    WiFi.softAP(AP_SSID);
-    IPAddress ip = WiFi.softAPIP();
-    dnsServer.start(53, "*", ip);
-    ws.onEvent(onWsEvent);
-    server.addHandler(&ws);
-    server.onNotFound([](AsyncWebServerRequest* req) {
-        if (req->host() != WiFi.softAPIP().toString()) {
-            req->redirect("http://" + WiFi.softAPIP().toString());
-        } else {
-            req->send_P(200, "text/html", PORTAL_HTML);
-        }
-    });
-    server.begin();
-    Serial.printf("Portal up at: http://%s\n", ip.toString().c_str());
-}
-
-void broadcastNotes() {
-    if (ws.count() == 0) return;
-    if (peakMag <= noiseFloor || peakMag <= MAG_THRESHOLD) {
-        ws.textAll("[]");
-        return;
-    }
-    float freqResolution = (float)SAMPLE_RATE / SAMPLE;
-
-    int  pos   = 0;
-    bool first = true;
-    wsBuf[pos++] = '[';
-    for (int i = 2; i < SAMPLE / 2; i++) {
-        float freq = i * freqResolution;
-        if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
-        float mag = vReal[i];
-        if (mag < noiseFloor)           continue;
-        if (mag < peakMag * 0.2f)       continue;
-        if (isHarmonic(freq, peakFreq)) continue;
-        int kidx = freqToled(freq);
-        if (kidx < 0) continue;
-        
-        if (pos >= (int)sizeof(wsBuf) - 64) break;
-
-        int written = snprintf(wsBuf + pos, sizeof(wsBuf) - pos - 2,
-                               "%s{\"name\":\"%s\",\"freq\":%.1f}",
-                               first ? "" : ",",
-                               NOTE_NAMES[kidx],
-                               freq);
-        if (written > 0 && pos + written < (int)sizeof(wsBuf) - 2) {
-            pos  += written;
-            first = false;
-        }
-    }
-    wsBuf[pos++] = ']';
-    wsBuf[pos]   = '\0';
-    ws.textAll(wsBuf);
+void handleCaptiveProbe() {
+  server.sendHeader("Location", "http://192.168.4.1/", true);
+  server.send(302, "text/plain", "");
 }
 
 void setup() {
-    Serial.begin(115200);
-    FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LED);
-    FastLED.setBrightness(BRIGHTNESS);
-    FastLED.setMaxPowerInVoltsAndAmps(5, MAX_AMPS);
-    setupI2S();
-    pinMode(JAX_ADC_PIN, INPUT);
-    analogReadResolution(12);
-    analogSetAttenuation(ADC_ATTEN_DB_11);
-    calibrateNoise();
-    setupPortal();
-    Serial.println("Piano LED ready");
+  Serial.begin(115200);
+  pinMode(VIBRATOR_PIN, OUTPUT);
+  pinMode(TOUCH_PIN, INPUT);
+  
+  Wire.begin(4, 5); 
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  mpu.begin();
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G); 
+  display.clearDisplay();
+  
+  digitalWrite(VIBRATOR_PIN, HIGH);
+  delay(150);
+  digitalWrite(VIBRATOR_PIN, LOW);
+
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+    WiFi.softAP("Gyro-Gotchi");
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP()); 
+    server.on("/", HTTP_GET, handleRoot);
+    server.on("/msg", HTTP_POST, handleMessage);
+    server.on("/sync", HTTP_GET, handleSync);
+    server.on("/generate_204", HTTP_GET, handleRoot);
+    server.on("/fwlink", HTTP_GET, handleRoot);
+    server.onNotFound(handleCaptiveProbe); 
+    server.begin();
+    wifi_active = true;
+    wifi_start_millis = millis();
+  }
+
+  if (has_time_synced) {
+    struct timeval tv;
+    tv.tv_sec = rtc_sync_time + ((millis() - rtc_sync_millis) / 1000);
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+  }
+
+  last_interaction_time = millis(); 
 }
 
 void loop() {
-    dnsServer.processNextRequest();
-    if (inputMode == INPUT_I2S) {
-        readI2S();
+  if (wifi_active) {
+    if (millis() - wifi_start_millis > WIFI_PORTAL_TIMEOUT) {
+      WiFi.softAPdisconnect(true);
+      WiFi.mode(WIFI_OFF);
+      dnsServer.stop();
+      server.stop();
+      wifi_active = false;
     } else {
-        readJax();
+      dnsServer.processNextRequest();
+      server.handleClient();
     }
-    FFT.windowing(FFT_WIN_TYP_HANN, FFT_FORWARD);
-    FFT.compute(FFT_FORWARD);
-    FFT.complexToMagnitude();
-    peakMag  = 0.0f;
-    peakFreq = 0.0f;
-    float freqResolution = (float)SAMPLE_RATE / SAMPLE;
-    for (int i = 2; i < SAMPLE / 2; i++) {
-        float freq = i * freqResolution;
-        if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
-        if (vReal[i] > peakMag) {
-            peakMag  = vReal[i];
-            peakFreq = freq;
-        }
+  }
+
+  sensors_event_t accelerometer_data, gyroscope_data, temperature_data;
+  mpu.getEvent(&accelerometer_data, &gyroscope_data, &temperature_data);
+  
+  display.clearDisplay();
+  display.setTextSize(1); 
+  display.setTextColor(SSD1306_WHITE);
+
+  bool touch_detected = (digitalRead(TOUCH_PIN) == HIGH);
+  float total_force = abs(accelerometer_data.acceleration.x) + abs(accelerometer_data.acceleration.y) + abs(accelerometer_data.acceleration.z);
+
+  if (touch_detected) {
+    if (!touch_was_active) {
+      touch_start_time = millis();
+      touch_was_active = true;
+    } else if (millis() - touch_start_time > 1500) {
+      showing_credits = true;
     }
-    if (peakMag <= noiseFloor) {
-        fadeToBlackBy(leds, NUM_LED, 20);
-        FastLED.show();
-        broadcastNotes();
-        return;
+  } else {
+    touch_was_active = false;
+    showing_credits = false;
+  }
+
+  if (touch_detected) {
+    last_interaction_time = millis(); 
+  }
+
+  if (millis() - last_interaction_time > SLEEP_TIMEOUT) {
+    goToDeepSleep();
+  }
+
+  if (showing_credits) {
+    display.setCursor(0, 0);
+    display.println("--- CREDITS ---");
+    display.setCursor(0, 20);
+    display.println("Gyro-Gotchi 06/2026");
+    display.println("tengy.org/site");
+    display.println("@tengy_ez (Teng 2011)");
+  }
+  else if (millis() < custom_text_display_expiry) {
+    display.setCursor(0, 0);
+    display.println("< Broadcast Alert >");
+    display.setCursor(0, 24);
+    display.print(" ");
+    display.println(cowsay_text);
+    display.drawRect(0, 16, 128, 32, SSD1306_WHITE);
+  }
+  else if (is_sleeping) {
+    digitalWrite(VIBRATOR_PIN, LOW);
+
+    if (touch_detected) {
+      is_sleeping = false;
+      digitalWrite(VIBRATOR_PIN, HIGH);
+      delay(150);
+      digitalWrite(VIBRATOR_PIN, LOW);
+      last_interaction_time = millis();
+      return;
     }
-    FastLED.clear();
-    if (peakMag > MAG_THRESHOLD && peakFreq > 0.0f) {
-        for (int i = 2; i < SAMPLE / 2; i++) {
-            float freq = i * freqResolution;
-            if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
-            float mag = vReal[i];
-            if (mag < peakMag * 0.2f)       continue;
-            if (isHarmonic(freq, peakFreq)) continue;
-            int kidx = freqToled(freq);
-            if (kidx < 0) continue;
-            int led0 = kidx * LED_PER_KEY;
-            int led1 = led0 + 1;
-            uint8_t bright = (uint8_t)constrain((mag / peakMag) * 255.0f, 0.0f, 255.0f);
-            CRGB color = freqColor(freq, kidx);
-            color.nscale8(bright);
-            if (color.getLuma() > leds[led0].getLuma()) {
-                leds[led0] = color;
-                if (led1 < NUM_LED) leds[led1] = color;
-            }
-        }
+
+    display.setCursor(0, 0);
+    int bat_pct = getBatteryPercentage();
+    
+    zzz_counter++;
+    unsigned long current_epoch = getCalculatedEpoch();
+    if(current_epoch > 0) {
+      time_t now = (time_t)current_epoch;
+      struct tm* timeinfo = localtime(&now);
+      if (zzz_counter < 10) {
+        display.printf("[%d%%] %02d:%02d Zzz...", bat_pct, timeinfo->tm_hour, timeinfo->tm_min);
+      } else if (zzz_counter < 20) {
+        display.printf("[%d%%] %02d:%02d zZzZ...", bat_pct, timeinfo->tm_hour, timeinfo->tm_min);
+      } else {
+        zzz_counter = 0;
+      }
+    } else {
+      if (zzz_counter < 10) {
+        display.printf("[%d%%] Zzz...", bat_pct);
+      } else if (zzz_counter < 20) {
+        display.printf("[%d%%] zZzZ...", bat_pct);
+      } else {
+        zzz_counter = 0;
+      }
     }
-    broadcastNotes();
-    Serial.printf("Peak: %.1f Hz  Magnitude: %.4f  Threshold: %.4f\n",
-                  peakFreq, peakMag, noiseFloor);
-    FastLED.show();
+
+    display.drawLine(25, 38, 45, 38, SSD1306_WHITE); 
+    display.drawLine(85, 38, 105, 38, SSD1306_WHITE); 
+
+    display.drawLine(15, 45, 23, 45, SSD1306_WHITE);
+    display.drawLine(105, 45, 113, 45, SSD1306_WHITE);
+    
+    display.drawLine(58, 48, 70, 48, SSD1306_WHITE);
+  }
+  else {
+    display.setCursor(0, 0);
+    if (touch_detected) {
+      digitalWrite(VIBRATOR_PIN, LOW); 
+      display.println("<3 lolol thaat tickles!");
+      
+      display.drawLine(25, 43, 35, 33, SSD1306_WHITE);
+      display.drawLine(35, 33, 45, 43, SSD1306_WHITE);
+      
+      display.drawLine(83, 43, 93, 33, SSD1306_WHITE);
+      display.drawLine(93, 33, 103, 43, SSD1306_WHITE);
+      
+      display.drawLine(15, 45, 23, 41, SSD1306_WHITE);
+      display.drawLine(15, 49, 23, 45, SSD1306_WHITE);
+      display.drawLine(105, 41, 113, 45, SSD1306_WHITE);
+      display.drawLine(105, 45, 113, 49, SSD1306_WHITE);
+      
+      display.drawCircle(64, 46, 5, SSD1306_WHITE);
+      blink_counter = 0;
+    }
+    else if (total_force > 25.0) {
+      digitalWrite(VIBRATOR_PIN, HIGH);
+      display.println("stopppp it im dizzy!");
+      
+      display.drawLine(25, 33, 45, 53, SSD1306_WHITE);
+      display.drawLine(45, 33, 25, 53, SSD1306_WHITE);
+      
+      display.drawLine(85, 33, 105, 53, SSD1306_WHITE);
+      display.drawLine(105, 33, 85, 53, SSD1306_WHITE);
+      
+      display.drawLine(54, 55, 74, 55, SSD1306_WHITE);
+      blink_counter = 0; 
+    }
+    else if (accelerometer_data.acceleration.y < -4.0) {
+      if (millis() % 400 < 200) {
+        digitalWrite(VIBRATOR_PIN, HIGH);
+      } else {
+        digitalWrite(VIBRATOR_PIN, LOW);
+      }
+      display.println("ay flip me back right now!....... stupid humans");
+      
+      display.drawLine(20, 33, 45, 43, SSD1306_WHITE);
+      display.drawLine(20, 48, 45, 48, SSD1306_WHITE);
+      
+      display.drawLine(108, 33, 83, 43, SSD1306_WHITE);
+      display.drawLine(108, 48, 83, 48, SSD1306_WHITE);
+      
+      display.drawCircle(64, 57, 4, SSD1306_WHITE);
+      blink_counter = 0; 
+    }
+    else if (accelerometer_data.acceleration.x < -4.0) {
+      digitalWrite(VIBRATOR_PIN, LOW);
+      display.println("woahh tilting left......");
+      
+      display.fillCircle(30, 38, 10, SSD1306_WHITE); 
+      display.fillCircle(26, 33, 2, SSD1306_BLACK);
+      
+      display.fillCircle(88, 38, 10, SSD1306_WHITE);
+      display.fillCircle(84, 33, 2, SSD1306_BLACK);
+      
+      display.drawLine(10, 45, 18, 45, SSD1306_WHITE);
+      display.drawLine(100, 45, 108, 45, SSD1306_WHITE);
+      
+      display.drawLine(53, 48, 59, 44, SSD1306_WHITE);
+      display.drawLine(59, 44, 65, 48, SSD1306_WHITE);
+      display.drawLine(65, 48, 71, 44, SSD1306_WHITE);
+      display.drawLine(71, 44, 77, 48, SSD1306_WHITE);
+    }
+    else if (accelerometer_data.acceleration.x > 4.0) {
+      digitalWrite(VIBRATOR_PIN, LOW);
+      display.println("yooooo im tilting right!!??");
+      
+      display.fillCircle(40, 38, 10, SSD1306_WHITE); 
+      display.fillCircle(42, 33, 2, SSD1306_BLACK);
+      
+      display.fillCircle(98, 38, 10, SSD1306_WHITE);
+      display.fillCircle(100, 33, 2, SSD1306_BLACK);
+      
+      display.drawLine(20, 45, 28, 45, SSD1306_WHITE);
+      display.drawLine(110, 45, 118, 45, SSD1306_WHITE);
+      
+      display.drawLine(63, 48, 69, 44, SSD1306_WHITE);
+      display.drawLine(69, 44, 75, 48, SSD1306_WHITE);
+      display.drawLine(75, 48, 81, 44, SSD1306_WHITE);
+      display.drawLine(81, 44, 87, 48, SSD1306_WHITE);
+    }
+    else {
+      digitalWrite(VIBRATOR_PIN, LOW); 
+      display.println("sup buddy");
+      
+      blink_counter++; 
+      if (blink_counter == 28 || blink_counter == 29) {
+        display.drawLine(25, 38, 45, 38, SSD1306_WHITE); 
+        display.drawLine(85, 38, 105, 38, SSD1306_WHITE); 
+      } 
+      else if (blink_counter >= 30) {
+        blink_counter = 0; 
+      } 
+      else {
+        display.fillCircle(35, 38, 10, SSD1306_WHITE); 
+        display.fillCircle(33, 33, 2, SSD1306_BLACK);
+        
+        display.fillCircle(93, 38, 10, SSD1306_WHITE);
+        display.fillCircle(91, 33, 2, SSD1306_BLACK);
+      }
+      
+      display.drawLine(15, 45, 23, 45, SSD1306_WHITE);
+      display.drawLine(105, 45, 113, 45, SSD1306_WHITE);
+      
+      display.drawLine(58, 46, 64, 50, SSD1306_WHITE);
+      display.drawLine(64, 50, 70, 46, SSD1306_WHITE);
+      display.drawLine(70, 46, 76, 50, SSD1306_WHITE);
+      display.drawLine(76, 50, 82, 46, SSD1306_WHITE);
+    }
+  }
+
+  display.display();
+  delay(100);
 }
 ```
 ## Materials
