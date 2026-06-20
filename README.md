@@ -47,11 +47,11 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 * GND | GND 
 * SIG | D1 
 * Vibrator to Xiao esp32 S3
-* + | D2
-* - | GND
+* Plus | D2
+* Negative | GND
 * LiPo to Xiao esp32 S3
-* + | BAT+ 
-* - | BAT- 
+* Plus | BAT+ 
+* Negative | BAT- 
 * Splice all 3.3v together and add solder and a electrical tape!!!
 * Splice all GND together and add solder and a electrical tape!!!
 * Refers to the schematic down below for more indepth guide.
