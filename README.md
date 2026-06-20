@@ -18,21 +18,9 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 
 ### Assembling
 
-* Print out the 3d parts (body,slider,topper and please use the 3mf file I beg you)
-* Put the esp-32 into the main body
-* Stack the esp32 cover lid over the esp32 to lock it in place
-* stick all the pin header into it own slot
-* follow the wiring guide below
-* put the microphone into the 6 headerpin slot
-* stuff all the wiring jumper wires into the case
-* connect the led strip into the external headerpin
-* charge the lipo with the Tp4056 module (not include in the circuit and the case)
-* connect the lipo to the external header pin
-* cut your 2m led strip to your piano size
-* use a multimeter to check the boost converter and adjust first using a screw prior to adding it to the circuit
-* take the sliding lid and close it
-* mount the led and the component box on your piano
-* The only point require soldering are the INMP441 mic and the GND wires. 
+* Print out the 3d parts (body, cap, minicap, cover) please use the 3mf file I beg you
+* place the 500mah lipo batterpack in horizontally
+* slide
 
 ### Wiring
 * INMP441 - ESP32
