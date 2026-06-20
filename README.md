@@ -514,10 +514,12 @@ PLA 3d printing/time       ≈15g ≈45min
 ```
 
 ## Assembled Pictures
+<img width="733" height="187" alt="Screenshot 2026-06-21 034422" src="https://github.com/user-attachments/assets/bf7c9445-5165-43d6-86a2-52e104184e6a" />
 
 
 ## Rendered Pictures
 
+<img width="689" height="176" alt="Screenshot 2026-06-21 034208" src="https://github.com/user-attachments/assets/e35a4386-e3eb-4b59-83c7-9dbae2e4faa5" />
 
 
 ## Captive Portal interface
