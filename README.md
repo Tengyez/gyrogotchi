@@ -20,26 +20,39 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 
 * Print out the 3d parts (body, cap, minicap, cover) please use the 3mf file I beg you
 * place the 500mah lipo batterpack in horizontally
-* slide
+* slide down the cover 3d piece to lock the lipo in place
+* put the xiao esp32 s3 in make sure it fits into the usbc slot
+* cover the xiao esp32 with the 3d printed minicap
+* then place in the mpu6050 on to the two poles above
+* then put in the oled screen facing the plastic
+* add in the pin to the capacitive touch then solder than cut off the excesspart this need to be flushed to the plastic
+* then put in the capacitive touch module make sure the touch side is facing the plastic
+* then slide in the vibrating module
+* the wire them all up and splice some wire (follow the wiring guide below)
+* finally slide in the 3d printed cap
 
 ### Wiring
-* INMP441 - ESP32
-* VDD  - 3.3V
-* GND  - GND
-* SCK  - GPIO32
-* WS   - GPIO25
-* SD   - GPIO34
-* L/R  - GND
-* WS2812B LED STRIP
-* DIN  - 300Ω → GPIO13
-* GND  - GND
-* MT3608 boost converter (use a multimeter to check the boost and adjust first prior to adding electricity)
-* +Vout - led strip 5v pin
-* -Vout - GND
-* Lipo battery (preferably 20 000mah)
-* Splice the red wire before connecting it to the boost converter and connect it to ESP-32 VIN pin
-* Red wire   - MT3608 +Vin pin
-* Black wire - GND
+MPU-6050 to Xiao esp32 S3
+VCC | 3V3
+GND | GND 
+SCL | D5 
+SDA | D4 
+OLED to Xiao esp32 S3
+VCC | 3V3 
+GND | GND 
+SCL | D5 
+SDA | D4 
+Touch (TTP223B) to Xiao esp32 S3
+VCC | 3V3 
+GND | GND 
+SIG | D1 
+Vibrator to Xiao esp32 S3
++ | D2
+- | GND
+LiPo to Xiao esp32 S3
++ | BAT+ 
+- | BAT- 
+* Splice all 3.3v together and add solder and a electrical tape!!!
 * Splice all GND together and add solder and a electrical tape!!!
 * Refers to the schematic down below for more indepth guide.
 
@@ -488,17 +501,7 @@ void loop() {
 
 This is the BOM of the entire project, just buy the normal one not the pcb version and just use jumper wire with minimal soldering required except for slicing GND together.
 ```
-ESP-32 devkit v1           1 pcs.
-INMP441 mic                1 pcs.
-WS2812B led                2m 144/m
-LIPO-battery               1 (reccomend atleast 10 000mah)
-Tp4056 usb-c               1 (does not include in the build, only use the charge lipo externally)
-MT3608 boost converter     1 pcs.
-Female Jumper wires        30 pcs.
-Male Jumper wires          15 pcs.
-Pin headers                5 pcs.
-Electrical tape            1 roll
-PLA 3d printing/time       ≈15g ≈45min
+
 ```
 
 ## Assembled Pictures
