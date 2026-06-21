@@ -1,11 +1,12 @@
-Components,quantity,comments,link
-Xiao esp32 s3,1pcs,The small one with no pins,https://www.ortech-online.com/product/5609/xiao-esp32-s3-seeed-studio-%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%94-esp32-s3-%E0%B8%82%E0%B8%99%E0%B8%B2%E0%B8%94%E0%B9%80%E0%B8%A5%E0%B9%87%E0%B8%81-%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5-%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%94%E0%B9%84%E0%B8%A3%E0%B9%89%E0%B8%AA%E0%B8%B2%E0%B8%A2-xiaoesp32s3-esp-32
-Mpu-6050,1pcs,no pins,https://www.ortech-online.com/product/6414/mpu-6050-n-%E0%B9%81%E0%B8%9A%E0%B8%9A%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%9A%E0%B8%B1%E0%B8%94%E0%B8%81%E0%B8%A3%E0%B8%B5-%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B9%80%E0%B8%A3%E0%B9%88%E0%B8%87-%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B9%84%E0%B8%94%E0%B9%89-3%E0%B9%81%E0%B8%81%E0%B8%99-xyz-mpu-6050-module-gy-521-3-axis-accelerometer
-"0.96"" Inch I2C IIC OLED",1pcs,blue one,https://www.ortech-online.com/product/623/1%E0%B8%8A%E0%B8%B4%E0%B9%89%E0%B8%99-aa412-%E0%B8%AB%E0%B8%99%E0%B9%89%E0%B8%B2%E0%B8%88%E0%B8%AD-%E0%B8%88%E0%B8%AD%E0%B9%81%E0%B8%AA%E0%B8%94%E0%B8%87%E0%B8%9C%E0%B8%A5-%E0%B8%82%E0%B8%99%E0%B8%B2%E0%B8%94-0-96-%E0%B8%99%E0%B8%B4%E0%B9%89%E0%B8%A7-0-96-inch-i2c-iic-oled-lcd-module-4pin-with-gnd-vcc-blue-
-touch ttp223b,1pcs,-,https://www.arduino4pro.com/product/1234/ttp223b-digital-touch-sensor
-Vibration motor module,1pcs,catalex,https://www.allnewstep.com/product/1346/%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5%E0%B8%A1%E0%B8%AD%E0%B9%80%E0%B8%95%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%AA%E0%B8%B1%E0%B9%88%E0%B8%99-vibration-motor-module-catalex
-female jumper wires,20pcs,any,-
-male jumper wires,15pcs,any,-
-electrical tape,1roll,any,-
-lipo battery,1pcs,500mah,https://shopee.co.th/%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B9%80%E0%B8%95%E0%B8%AD%E0%B8%A3%E0%B8%B5%E0%B9%88-500mAh-403040-3.7v-Battery-Lipo-polymer-lithium-rechargeable-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%81%E0%B8%A5%E0%B9%89%E0%B8%AD%E0%B8%87-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%AB%E0%B8%B9%E0%B8%9F%E0%B8%B1%E0%B8%87-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%A5%E0%B8%B3%E0%B9%82%E0%B8%9E%E0%B8%87-Bluetooth-Diy-i.454830550.27028343386
-pla,25g,50min,-
+Components,quantity,comments,link,cost
+Xiao esp32 s3,1pcs,The small one with no pins,https://www.ortech-online.com/product/5609/xiao-esp32-s3-seeed-studio-%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%94-esp32-s3-%E0%B8%82%E0%B8%99%E0%B8%B2%E0%B8%94%E0%B9%80%E0%B8%A5%E0%B9%87%E0%B8%81-%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5-%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%94%E0%B9%84%E0%B8%A3%E0%B9%89%E0%B8%AA%E0%B8%B2%E0%B8%A2-xiaoesp32s3-esp-32,20usd
+Mpu-6050,1pcs,no pins,https://www.ortech-online.com/product/6414/mpu-6050-n-%E0%B9%81%E0%B8%9A%E0%B8%9A%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%9A%E0%B8%B1%E0%B8%94%E0%B8%81%E0%B8%A3%E0%B8%B5-%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B9%80%E0%B8%A3%E0%B9%88%E0%B8%87-%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B9%84%E0%B8%94%E0%B9%89-3%E0%B9%81%E0%B8%81%E0%B8%99-xyz-mpu-6050-module-gy-521-3-axis-accelerometer,3usd
+"0.96"" Inch I2C IIC OLED",1pcs,blue one,https://www.ortech-online.com/product/623/1%E0%B8%8A%E0%B8%B4%E0%B9%89%E0%B8%99-aa412-%E0%B8%AB%E0%B8%99%E0%B9%89%E0%B8%B2%E0%B8%88%E0%B8%AD-%E0%B8%88%E0%B8%AD%E0%B9%81%E0%B8%AA%E0%B8%94%E0%B8%87%E0%B8%9C%E0%B8%A5-%E0%B8%82%E0%B8%99%E0%B8%B2%E0%B8%94-0-96-%E0%B8%99%E0%B8%B4%E0%B9%89%E0%B8%A7-0-96-inch-i2c-iic-oled-lcd-module-4pin-with-gnd-vcc-blue-,3usd
+touch ttp223b,1pcs,-,https://www.arduino4pro.com/product/1234/ttp223b-digital-touch-sensor,1usd
+Vibration motor module,1pcs,catalex,https://www.allnewstep.com/product/1346/%E0%B9%82%E0%B8%A1%E0%B8%94%E0%B8%B9%E0%B8%A5%E0%B8%A1%E0%B8%AD%E0%B9%80%E0%B8%95%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%AA%E0%B8%B1%E0%B9%88%E0%B8%99-vibration-motor-module-catalex,1usd
+female jumper wires,20pcs,any,-,1usd
+male jumper wires,15pcs,any,-,50cent
+electrical tape,1roll,any,-,-
+lipo battery,1pcs,500mah,https://shopee.co.th/%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B9%80%E0%B8%95%E0%B8%AD%E0%B8%A3%E0%B8%B5%E0%B9%88-500mAh-403040-3.7v-Battery-Lipo-polymer-lithium-rechargeable-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%81%E0%B8%A5%E0%B9%89%E0%B8%AD%E0%B8%87-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%AB%E0%B8%B9%E0%B8%9F%E0%B8%B1%E0%B8%87-%E0%B9%81%E0%B8%9A%E0%B8%95%E0%B8%A5%E0%B8%B3%E0%B9%82%E0%B8%9E%E0%B8%87-Bluetooth-Diy-i.454830550.27028343386,10usd
+pla,25g,50min,-,-
+Total cost,39.5usd
