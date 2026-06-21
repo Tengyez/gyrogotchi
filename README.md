@@ -66,16 +66,17 @@ This is a tamagotchi keychain that introduce another way to interact with the ch
 
 This is the BOM of the entire project, just buy the normal one not the pcb version and just use jumper wire with minimal soldering required except for slicing GND together.
 ```
-* Xiao esp32 S3                      1pcs.
-* MPU-6050                           1pcs.
-* 0.96" Inch I2C IIC OLED            1pcs.
-* Touch (TTP223B)                    1pcs.
-* Vibration Motor Module (Catalex)   1pcs.
-* Female Jumper Wires                20pcs.
-* Male Jumper wires                  15pcs.
-* Electrical tape                    1roll
-* Lipo Battery                       500mah
-* PLA 3d printing/time               ≈25g ≈50min
+* Xiao esp32 S3                      1pcs.        20usd
+* MPU-6050                           1pcs.        3usd
+* 0.96" Inch I2C IIC OLED            1pcs.        3usd
+* Touch (TTP223B)                    1pcs.        1usd
+* Vibration Motor Module (Catalex)   1pcs.        1usd
+* Female Jumper Wires                20pcs.       1usd
+* Male Jumper wires                  15pcs.       50cent
+* Electrical tape                    1roll        -
+* Lipo Battery                       500mah       10usd
+* PLA 3d printing/time               ≈25g ≈50min  -
+Total cost: 39.5usd
 ```
 
 ## Assembled Pictures
